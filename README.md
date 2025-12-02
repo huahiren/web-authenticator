@@ -247,10 +247,16 @@ pm startup
 
 #### 4.1 配置前端API地址
 
-编辑前端的`api-service.js`文件，将API_BASE_URL修改为后端服务的实际地址：
+前端配置文件位于项目根目录下的`config.js`文件。由于该文件已被添加到`.gitignore`中，不会被Git跟踪，因此您需要先从示例文件创建该文件：
 
 ```bash
-# 编辑config.js文件
+# 从示例文件复制创建config.js
+cp config.js.example config.js
+```
+
+然后编辑`config.js`文件，将API_BASE_URL修改为后端服务的实际地址：
+
+```bash
 vi config.js
 ```
 
