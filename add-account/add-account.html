@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加账户</title>
+    <link rel="stylesheet" href="add-account.css">
+</head>
+<body>
+    <!-- 添加账户Tab内容 -->
+    <div id="add-account-section" class="tab-content">
+        <div class="section-header">
+            <h2>添加账户</h2>
+        </div>
+        <div class="section-content">
+            <form id="add-account-form">
+                <div class="form-group">
+                    <label for="account-name">账户名称</label>
+                    <input type="text" id="account-name" name="name" placeholder="例如：example@gmail.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="account-issuer">发行者（可选）</label>
+                    <input type="text" id="account-issuer" name="issuer" placeholder="例如：Google">
+                </div>
+                <div class="form-group">
+                    <label for="account-secret">密钥</label>
+                    <div class="secret-input-group">
+                        <input type="text" id="account-secret" name="secret" placeholder="输入32位Base32密钥" required>
+                    </div>
+                </div>
+                <div class="add-account-buttons">
+                    <button type="button" id="generate-secret" class="btn btn-secondary">生成随机密钥</button>
+                    <button type="button" id="scan-qr-btn" class="btn btn-secondary">扫描二维码</button>
+                    <button type="submit" class="btn btn-primary">添加账户</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../api-service.js"></script>
+    <script src="add-account.js"></script>
+</body>
+</html>

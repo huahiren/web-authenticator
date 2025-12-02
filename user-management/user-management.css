@@ -1,0 +1,98 @@
+/* 用户管理样式 */
+/* 用户列表样式 */
+.users-list {
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-item {
+    background: #f8fafc;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.user-item:hover {
+    background: #edf2f7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 4px;
+}
+
+.user-role {
+    color: #718096;
+    font-size: 0.9rem;
+}
+
+.user-role.admin {
+    color: #e53e3e;
+    font-weight: 600;
+}
+
+.user-role.user {
+    color: #38a169;
+    font-weight: 600;
+}
+
+.user-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.user-actions button {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+}
+
+.delete-user-btn {
+    background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+}
+
+.delete-user-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
+}
+
+/* 编辑用户模态框样式 */
+#edit-user-modal .modal-content {
+    max-width: 400px;
+}
+
+#edit-user-form {
+    margin-top: 20px;
+}
+
+/* 角色选择样式 */
+#user-role,
+#edit-role {
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    font-size: 1rem;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+#user-role:focus,
+#edit-role:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}

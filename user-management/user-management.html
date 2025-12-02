@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="user-management.css">
+</head>
+<body>
+    <!-- 用户管理Tab内容 -->
+    <div id="user-management" class="tab-content">
+        <div class="section-header">
+            <h2>用户管理</h2>
+        </div>
+        <div class="section-content">
+            <form id="add-user-form">
+                <div class="form-group">
+                    <label for="new-username">新用户名</label>
+                    <input type="text" id="new-username" name="username" placeholder="输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">密码</label>
+                    <input type="password" id="new-password" name="password" placeholder="输入密码" required>
+                </div>
+                <div class="form-group">
+                    <label for="user-role">角色</label>
+                    <select id="user-role" name="role">
+                        <option value="admin">管理员</option>
+                        <option value="user">普通用户</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">添加用户</button>
+            </form>
+            
+            <div id="users-list" class="users-list"></div>
+        </div>
+    </div>
+
+    <script src="../api-service.js"></script>
+    <script src="user-management.js"></script>
+</body>
+</html>

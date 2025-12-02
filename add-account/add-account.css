@@ -1,0 +1,154 @@
+/* 添加账户样式 */
+/* 密钥输入组样式 */
+.secret-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.secret-input-group input {
+    flex: 1;
+}
+
+/* 添加账户表单的按钮组 */
+.add-account-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+#add-account-form button {
+    width: auto;
+}
+
+/* 扫描容器样式 */
+.scan-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #000;
+}
+
+#video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.scan-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, transparent 200px, rgba(0, 0, 0, 0.7) 200px);
+    pointer-events: none;
+}
+
+.scan-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.scan-controls button {
+    flex: 1;
+    max-width: 200px;
+}
+
+#start-scan {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
+#stop-scan {
+    background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+}
+
+/* 扫描标签页样式 */
+.scan-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* 图片扫描样式 */
+.image-scan-container {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.image-preview {
+    width: 100%;
+    height: 300px;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    background-color: #f7fafc;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.image-preview:hover {
+    border-color: #667eea;
+    background-color: #edf2f7;
+}
+
+.image-preview.highlight {
+    border-color: #667eea;
+    background-color: rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+#image-preview {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    max-height: 300px;
+    border-radius: 8px;
+    object-fit: contain;
+    display: none;
+}
+
+.image-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #a0aec0;
+}
+
+.image-placeholder p {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.file-input-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.file-input-container button {
+    flex: 1;
+    max-width: 200px;
+}
+
+#select-image {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+}
+
+#analyze-image {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
+#analyze-image:disabled {
+    background: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}

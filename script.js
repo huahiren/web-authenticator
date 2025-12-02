@@ -192,12 +192,6 @@ if (typeof window !== 'undefined') {
     let stream = null;
     
     // DOM元素
-    // 登录相关
-    const loginForm = document.getElementById('login-form');
-    const usernameInput = document.getElementById('login-username');
-    const passwordInput = document.getElementById('login-password');
-    const loginError = document.getElementById('login-message');
-    const loginPage = document.getElementById('login-page');
     const appPage = document.getElementById('app-page');
     
     // 应用相关
@@ -257,36 +251,8 @@ if (typeof window !== 'undefined') {
     const scanImagePreview = document.getElementById('image-preview');
     const scanImagePreviewContainer = document.getElementById('image-drop-zone');
     
-    // 登录功能
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value;
-            
-            try {
-                await login(username, password);
-            } catch (error) {
-                loginError.textContent = error.message;
-            }
-        });
-    }
-    
-    // 登录函数
-    async function login(username, password) {
-        try {
-            const user = await ApiService.login(username, password);
-            currentUser = user;
-            showAppPage();
-        } catch (error) {
-            throw new Error('登录失败: ' + error.message);
-        }
-    }
-    
     // 显示应用页面
     function showAppPage() {
-        loginPage.style.display = 'none';
-        appPage.style.display = 'block';
         userInfo.textContent = currentUser.username;
         
         // 根据用户角色控制tab显示
@@ -316,21 +282,10 @@ if (typeof window !== 'undefined') {
         initApp();
     }
     
-    // 显示登录页面
-    function showLoginPage() {
-        appPage.style.display = 'none';
-        loginPage.style.display = 'block';
-        usernameInput.value = '';
-        passwordInput.value = '';
-        loginError.textContent = '';
-        currentUser = null;
-        accounts = [];
-    }
-    
     // 检查用户状态
     async function checkUserStatus() {
         try {
-            // 使用ApiService.getCurrentUser()替代不存在的checkUserStatus方法
+            // 使用ApiService.getCurrentUser()获取当前用户
             const user = await ApiService.getCurrentUser();
             currentUser = user;
             showAppPage();
@@ -341,8 +296,9 @@ if (typeof window !== 'undefined') {
                 currentUser = user;
                 showAppPage();
             } catch (verifyError) {
-                showLoginPage();
-            }
+            // 未登录或token过期，跳转到登录页面
+            window.location.href = 'login/login.html';
+        }
         }
     }
     
@@ -350,7 +306,8 @@ if (typeof window !== 'undefined') {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             await ApiService.logout();
-            showLoginPage();
+        // 退出后跳转到登录页面
+        window.location.href = 'login/login.html';
         });
     }
     
