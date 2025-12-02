@@ -133,19 +133,23 @@ async function renderAccounts() {
     }
     
     let html = '';
-    
     for (const account of accounts) {
-        const otp = await generateTOTP(account.secret);
+        // 生成TOTP
+        const otp = generateTOTP(account.secret);
         const timeLeft = getRemainingTime();
+        
+        // 解码账户名和发行者
+        const decodedName = decodeURIComponent(account.name);
+        const decodedIssuer = account.issuer ? decodeURIComponent(account.issuer) : '无发行者';
         
         html += `
             <div class="account-item">
                 <div class="account-info">
-                    <h3>${account.name}</h3>
-                    <p>${account.issuer || '无发行者'}</p>
+                    <h3>${decodedName}</h3>
+                    <p>${decodedIssuer}</p>
                 </div>
                 <div class="totp-container">
-                    <div class="totp-code">${otp || '生成失败'}</div>
+                    <div class="totp-code" title="点击复制密钥">${otp || '生成失败'}</div>
                     <div class="countdown-container">
                         <div class="countdown-bar" style="width: ${(timeLeft / 30) * 100}%"></div>
                         <div class="countdown-text">${timeLeft}s</div>
@@ -156,6 +160,24 @@ async function renderAccounts() {
     }
     
     totpList.innerHTML = html;
+    
+    // 添加点击复制TOTP码事件
+    const totpCodeElements = document.querySelectorAll('.totp-code');
+    totpCodeElements.forEach(element => {
+        element.addEventListener('click', async () => {
+            const totpCode = element.textContent;
+            if (totpCode && totpCode !== '生成中...' && totpCode !== '生成失败') {
+                try {
+                    await navigator.clipboard.writeText(totpCode);
+                    // 简单的提示，因为view-only.js可能没有showToast函数
+                    alert('动态密钥已复制到剪贴板');
+                } catch (error) {
+                    console.error('复制失败:', error);
+                    alert('复制失败，请手动复制');
+                }
+            }
+        });
+    });
 }
 
 // 初始化

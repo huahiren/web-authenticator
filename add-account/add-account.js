@@ -14,9 +14,8 @@ function generateRandomKey(length = 16) {
 
 // 生成OTP URI
 function generateOTPURI(account, secret, issuer = '') {
-    const encodedAccount = encodeURIComponent(account);
-    const encodedIssuer = encodeURIComponent(issuer);
-    return `otpauth://totp/${encodedIssuer ? encodedIssuer + ':' : ''}${encodedAccount}?secret=${secret}&issuer=${encodedIssuer}&digits=6&period=30`;
+    // 账户名不需要转义，直接使用原始字符串
+    return `otpauth://totp/${issuer ? issuer + ':' : ''}${account}?secret=${secret}&issuer=${issuer}&digits=6&period=30`;
 }
 
 // 解析OTP URI
@@ -269,186 +268,11 @@ window.addEventListener('DOMContentLoaded', async () => {
             });
         }
         
-        // 扫描二维码按钮事件
+        // 移除扫码功能，因为缺少必要的DOM元素和库
         const scanQrBtn = document.getElementById('scan-qr-btn');
         if (scanQrBtn) {
             scanQrBtn.addEventListener('click', () => {
-                const scanModal = document.getElementById('qr-scan-modal');
-                if (scanModal) {
-                    scanModal.style.display = 'block';
-                }
-            });
-        }
-        
-        // 关闭扫描模态框
-        const scanModal = document.getElementById('qr-scan-modal');
-        const closeBtn = scanModal ? scanModal.querySelector('.close') : null;
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                if (scanModal) {
-                    scanModal.style.display = 'none';
-                }
-                stopScan();
-                resetImageScan();
-            });
-        }
-        
-        // 点击模态框外部关闭
-        window.addEventListener('click', (e) => {
-            if (scanModal && e.target === scanModal) {
-                scanModal.style.display = 'none';
-                stopScan();
-                resetImageScan();
-            }
-        });
-        
-        // 开始扫描按钮事件
-        const startScanBtn = document.getElementById('start-scan');
-        if (startScanBtn) {
-            startScanBtn.addEventListener('click', async () => {
-                try {
-                    const constraints = {
-                        video: { facingMode: 'environment' }
-                    };
-                    window.stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    
-                    const video = document.getElementById('video');
-                    if (video) {
-                        video.srcObject = window.stream;
-                        await video.play();
-                        
-                        // 检查浏览器是否支持BarcodeDetector
-                        if (window.BarcodeDetector) {
-                            const barcodeDetector = new BarcodeDetector({
-                                formats: ['qr_code']
-                            });
-                            
-                            // 使用BarcodeDetector持续扫描
-                            window.scanInterval = setInterval(async () => {
-                                try {
-                                    const barcodes = await barcodeDetector.detect(video);
-                                    if (barcodes.length > 0) {
-                                        const result = barcodes[0].rawValue;
-                                        if (result) {
-                                            processScanResult(result);
-                                        }
-                                    }
-                                } catch (detectError) {
-                                    console.error('扫描检测错误:', detectError);
-                                }
-                            }, 1000);
-                        } else {
-                            alert('您的浏览器不支持二维码扫描功能，请使用手动输入方式');
-                            stopScan();
-                            return;
-                        }
-                        
-                        startScanBtn.disabled = true;
-                        const stopScanBtn = document.getElementById('stop-scan');
-                        if (stopScanBtn) {
-                            stopScanBtn.disabled = false;
-                        }
-                    }
-                } catch (error) {
-                    console.error('启动摄像头失败:', error);
-                    alert('无法访问摄像头，请确保已授予摄像头权限');
-                }
-            });
-        }
-        
-        // 停止扫描按钮事件
-        const stopScanBtn = document.getElementById('stop-scan');
-        if (stopScanBtn) {
-            stopScanBtn.addEventListener('click', () => {
-                stopScan();
-            });
-        }
-        
-        // 图片扫描 - 选择图片按钮点击事件
-        const scanSelectImageBtn = document.getElementById('select-image');
-        const scanImageInput = document.getElementById('scan-image-input');
-        if (scanSelectImageBtn && scanImageInput) {
-            scanSelectImageBtn.addEventListener('click', () => {
-                scanImageInput.click();
-            });
-        }
-        
-        // 图片选择变化事件
-        if (scanImageInput) {
-            scanImageInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const scanImagePreview = document.getElementById('image-preview');
-                        if (scanImagePreview) {
-                            scanImagePreview.src = event.target.result;
-                            scanImagePreview.style.display = 'block';
-                        }
-                        const placeholder = document.querySelector('.image-placeholder');
-                        if (placeholder) {
-                            placeholder.style.display = 'none';
-                        }
-                        const scanAnalyzeImageBtn = document.getElementById('analyze-image');
-                        if (scanAnalyzeImageBtn) {
-                            scanAnalyzeImageBtn.disabled = false;
-                        }
-                        const scanResetImageBtn = document.getElementById('reset-image');
-                        if (scanResetImageBtn) {
-                            scanResetImageBtn.disabled = false;
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-        
-        // 图片扫描 - 解析图片按钮点击事件
-        const scanAnalyzeImageBtn = document.getElementById('analyze-image');
-        if (scanAnalyzeImageBtn) {
-            scanAnalyzeImageBtn.addEventListener('click', async () => {
-                const scanImagePreview = document.getElementById('image-preview');
-                if (scanImagePreview && scanImagePreview.src) {
-                    try {
-                        // 使用jsQR库解析图片
-                        const image = new Image();
-                        image.src = scanImagePreview.src;
-                        await image.decode();
-                        
-                        const canvas = document.createElement('canvas');
-                        canvas.width = image.width;
-                        canvas.height = image.height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(image, 0, 0);
-                        
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        
-                        if (typeof jsQR !== 'undefined') {
-                            const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                                inversionAttempts: "dontInvert",
-                            });
-                            
-                            if (code) {
-                                processScanResult(code.data);
-                            } else {
-                                showToast('无法从图片中识别二维码', 'error');
-                            }
-                        } else {
-                            alert('二维码解析库未加载');
-                        }
-                    } catch (error) {
-                        console.error('解析图片失败:', error);
-                        showToast('解析图片失败: ' + error.message, 'error');
-                    }
-                }
-            });
-        }
-        
-        // 图片扫描 - 重置按钮点击事件
-        const scanResetImageBtn = document.getElementById('reset-image');
-        if (scanResetImageBtn) {
-            scanResetImageBtn.addEventListener('click', () => {
-                resetImageScan();
+                showToast('扫码功能暂不可用，请手动输入密钥', 'warning');
             });
         }
         

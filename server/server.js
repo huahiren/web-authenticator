@@ -10,7 +10,11 @@ dotenv.config();
 const app = express();
 
 // 中间件
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // 引入路由

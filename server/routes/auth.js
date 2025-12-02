@@ -86,8 +86,17 @@ router.post('/verify-token', async (req, res) => {
 // 获取当前用户信息
 router.get('/me', protect, async (req, res) => {
   try {
+    // 从数据库获取完整用户信息
     const user = await User.findById(req.user.userId).select('-password');
-    res.json({ user });
+    
+    // 确保返回的用户对象包含id、username和role字段
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        role: user.role
+      }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: '服务器错误' });

@@ -23,6 +23,11 @@ const AccountSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  userRemarks: {
+    type: Map,
+    of: String,
+    default: () => new Map()
+  },
   createdAt: {
     type: Date,
     default: Date.now

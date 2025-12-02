@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Authenticator - Web版本</title>
+    <title>Authenticator - Web版本</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
         <header>
             <div class="header-content">
                 <div>
-                    <h1>Google Authenticator</h1>
+                    <h1>Authenticator</h1>
                     <p>Web版本</p>
                 </div>
                 <div class="user-info">
@@ -24,38 +24,173 @@
         </header>
 
         <main>
-            <div class="nav-container">
-                <div class="nav-title">
-                    <h2>功能导航</h2>
+            <!-- Tab导航 -->
+            <div class="tab-container">
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="my-accounts">我的账户</button>
+                    <button class="tab-btn" data-tab="add-account">添加账户</button>
+                    <button class="tab-btn" data-tab="user-management">用户管理</button>
                 </div>
-                <div class="nav-links">
-                    <a href="my-accounts/my-accounts.html" class="nav-card">
-                        <div class="nav-card-content">
-                            <h3>我的账户</h3>
-                            <p>查看和管理您的认证账户</p>
+
+                <!-- 我的账户Tab内容 -->
+                <div id="my-accounts" class="tab-content active">
+                    <h2>我的账户</h2>
+                    <div id="accounts-list"></div>
+                </div>
+
+                <!-- 添加账户Tab内容 -->
+                <div id="add-account" class="tab-content">
+                    <h2>添加账户</h2>
+                    <div class="add-account-container">
+                        <form id="add-account-form">
+                            <div class="form-group">
+                                <label for="account-name">账户名称</label>
+                                <input type="text" id="account-name" name="name" placeholder="例如：example@gmail.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="account-issuer">发行者（可选）</label>
+                                <input type="text" id="account-issuer" name="issuer" placeholder="例如：Google">
+                            </div>
+                            <div class="form-group">
+                                <label for="account-secret">密钥</label>
+                                <div class="secret-input-group">
+                                    <input type="text" id="account-secret" name="secret" placeholder="输入32位Base32密钥" required>
+                                    <button type="button" id="generate-secret" class="btn btn-secondary">生成随机密钥</button>
+                                </div>
+                            </div>
+                            <div class="add-account-buttons">
+                                <button type="button" id="scan-qr-btn" class="btn btn-secondary">扫描二维码</button>
+                                <button type="submit" class="btn btn-primary">添加账户</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 显示二维码模态框 -->
+                    <div id="show-qr-modal" class="modal">
+                        <div class="modal-content">
+                            <span class="close">&times;</span>
+                            <h3>显示二维码</h3>
+                            <div id="show-qr-container"></div>
                         </div>
-                    </a>
-                    <a href="add-account/add-account.html" class="nav-card">
-                        <div class="nav-card-content">
-                            <h3>添加账户</h3>
-                            <p>添加新的认证账户</p>
+                    </div>
+
+                    <!-- 二维码扫描模态框 -->
+                    <div id="qr-scan-modal" class="modal">
+                        <div class="modal-content">
+                            <span class="close">&times;</span>
+                            <h3>扫描二维码</h3>
+                            <div class="scan-tabs">
+                                <button class="tab-btn active" data-scan-tab="camera">摄像头扫描</button>
+                                <button class="tab-btn" data-scan-tab="image">图片扫描</button>
+                            </div>
+                            
+                            <!-- 摄像头扫描 -->
+                            <div id="camera" class="scan-tab-content active">
+                                <div id="scan-preview-container">
+                                    <video id="scan-preview" autoplay playsinline></video>
+                                    <div id="scan-overlay"></div>
+                                </div>
+                                <div class="scan-controls">
+                                    <button id="start-scan" class="btn btn-primary">开始扫描</button>
+                                    <button id="stop-scan" class="btn btn-secondary" disabled>停止扫描</button>
+                                </div>
+                            </div>
+                            
+                            <!-- 图片扫描 -->
+                            <div id="image" class="scan-tab-content">
+                                <div id="image-drop-zone">
+                                    <div id="image-preview"></div>
+                                    <div class="image-placeholder">
+                                        <p>拖放图片到此处或点击选择图片</p>
+                                    </div>
+                                </div>
+                                <div class="file-input-container">
+                                    <input type="file" id="image-input" accept="image/*" style="display: none;">
+                                    <button type="button" id="select-image-btn" class="btn btn-secondary">选择图片</button>
+                                    <button type="button" id="decode-image" class="btn btn-primary">解析图片</button>
+                                    <button type="button" id="reset-image" class="btn btn-secondary">重置</button>
+                                </div>
+                            </div>
                         </div>
-                    </a>
-                    <a href="user-management/user-management.html" class="nav-card">
-                        <div class="nav-card-content">
-                            <h3>用户管理</h3>
-                            <p>管理系统用户（仅管理员）</p>
+                    </div>
+                </div>
+
+                <!-- 用户管理Tab内容 -->
+                <div id="user-management" class="tab-content">
+                    <h2>用户管理</h2>
+                    <form id="add-user-form">
+                        <div class="form-group">
+                            <label for="new-username">用户名</label>
+                            <input type="text" id="new-username" name="username" placeholder="输入用户名" required>
                         </div>
-                    </a>
+                        <div class="form-group">
+                            <label for="new-password">密码</label>
+                            <input type="password" id="new-password" name="password" placeholder="输入密码" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="user-role">角色</label>
+                            <select id="user-role" name="role" required>
+                                <option value="user">普通用户</option>
+                                <option value="admin">管理员</option>
+                            </select>
+                        </div>
+                        <button type="submit" id="add-user" class="btn btn-primary">添加用户</button>
+                    </form>
+                    <div id="users-list"></div>
                 </div>
             </div>
         </main>
 
         <footer>
-            <p>&copy; 2023 Google Authenticator Web</p>
+            <p>&copy; 2025 Authenticator Web</p>
         </footer>
     </div>
 
+    <!-- 共享账户模态框 -->
+    <div id="share-account-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>共享账户</h3>
+            <div class="form-group">
+                <label for="share-user-select">选择用户</label>
+                <select id="share-user-select" class="styled-select" required>
+                    <!-- 动态生成用户选项 -->
+                </select>
+            </div>
+            
+            <!-- 已共享用户列表 -->
+            <div class="form-group">
+                <label>已共享用户</label>
+                <div id="shared-users-list" class="shared-users-list">
+                    <!-- 动态生成已共享用户 -->
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" id="cancel-share-btn" class="btn btn-secondary">取消</button>
+                <button type="button" id="confirm-share-btn" class="btn btn-primary">确认共享</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改备注名模态框 -->
+    <div id="edit-remark-modal" class="modal">
+        <div class="modal-content">
+            <h3>修改备注名</h3>
+            <div class="form-group">
+                <label for="remark-input">备注名</label>
+                <input type="text" id="remark-input" placeholder="输入备注名">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-remark-btn" class="btn btn-secondary">取消</button>
+                <button id="confirm-remark-btn" class="btn btn-primary">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- 尝试使用另一个CDN链接和版本 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="api-service.js"></script>
     <script src="index.js"></script>
 </body>

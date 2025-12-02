@@ -55,13 +55,27 @@ class ApiService {
 
     try {
       const response = await fetch(url, options);
-      const data = await response.json();
-
+      
+      // 检查响应状态码
       if (!response.ok) {
-        throw new Error(data.message || '请求失败');
+        // 尝试解析响应为JSON
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          // 如果响应不是JSON，使用状态文本作为错误信息
+          throw new Error(`请求失败: ${response.status} ${response.statusText}`);
+        }
+        throw new Error(errorData.message || `请求失败: ${response.status} ${response.statusText}`);
       }
-
-      return data;
+      
+      // 尝试解析响应为JSON
+      try {
+        const data = await response.json();
+        return data;
+      } catch (jsonError) {
+        throw new Error('响应不是有效的JSON格式');
+      }
     } catch (error) {
       console.error('API请求错误:', error);
       throw error;
@@ -110,7 +124,11 @@ class ApiService {
   // 获取所有用户（仅管理员）
   static async getUsers() {
     const data = await this.request('/users');
-    return data;
+    // 确保每个用户对象都包含id字段，兼容_id和id
+    return data.map(user => ({
+      ...user,
+      id: user.id || user._id
+    }));
   }
 
   // 添加用户（仅管理员）
@@ -145,6 +163,12 @@ class ApiService {
   // 添加账户
   static async addAccount(name, secret, issuer = '') {
     const data = await this.request('/accounts', 'POST', { name, secret, issuer });
+    return data;
+  }
+
+  // 获取单个账户详情
+  static async getAccount(accountId) {
+    const data = await this.request(`/accounts/${accountId}`);
     return data;
   }
 

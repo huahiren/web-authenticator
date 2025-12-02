@@ -4,19 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的账户</title>
+    <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="my-accounts.css">
 </head>
 <body>
-    <!-- 我的账户Tab内容 -->
-    <div id="my-accounts" class="tab-content active">
-        <div class="section-header">
-            <h2>我的账户</h2>
-        </div>
-        <div class="section-content">
-            <div id="accounts-list"></div>
+    <div class="container">
+        <h1>我的账户</h1>
+        <div id="accounts-list"></div>
+    </div>
+
+    <!-- 显示二维码模态框 -->
+    <div id="show-qr-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>显示二维码</h3>
+            <div id="show-qr-container"></div>
         </div>
     </div>
 
+    <!-- 二维码扫描模态框 -->
+    <div id="qr-scan-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>扫描二维码</h3>
+            <div class="scan-tabs">
+                <button class="tab-btn active" data-scan-tab="camera">摄像头扫描</button>
+                <button class="tab-btn" data-scan-tab="image">图片扫描</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 共享账户模态框 -->
+    <div id="share-account-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>共享账户</h3>
+            <div class="form-group">
+                <label for="share-user-select">选择用户</label>
+                <select id="share-user-select" class="styled-select" required>
+                    <!-- 动态生成用户选项 -->
+                </select>
+            </div>
+            
+            <!-- 已共享用户列表 -->
+            <div class="form-group">
+                <label>已共享用户</label>
+                <div id="shared-users-list" class="shared-users-list">
+                    <!-- 动态生成已共享用户 -->
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" id="cancel-share-btn" class="btn btn-secondary">取消</button>
+                <button type="button" id="confirm-share-btn" class="btn btn-primary">确认共享</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改备注名模态框 -->
+    <div id="edit-remark-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>修改备注名</h3>
+            <div class="form-group">
+                <label for="remark-input">备注名</label>
+                <input type="text" id="remark-input" class="form-control" placeholder="请输入备注名">
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" id="cancel-remark-btn" class="btn btn-secondary">取消</button>
+                <button type="button" id="confirm-remark-btn" class="btn btn-primary">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="../api-service.js"></script>
     <script src="my-accounts.js"></script>
 </body>

@@ -78,14 +78,14 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     
     // 不允许删除自己
-    if (req.user && req.user._id.toString() === id) {
+    if (req.user && req.user.userId && req.user.userId.toString() === id) {
       return res.status(400).json({ message: '不能删除自己的账号' });
     }
     
     await User.findByIdAndDelete(id);
     res.json({ message: '用户删除成功' });
   } catch (error) {
-    console.error(error);
+    console.error('删除用户错误:', error);
     res.status(500).json({ message: '服务器错误' });
   }
 });

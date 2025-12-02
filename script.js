@@ -117,11 +117,10 @@ function generateRandomKey(length = 16) {
     return result;
 }
 
-// 生成OTP URI
-function generateOTPURI(account, secret, issuer = '') {
-    const encodedAccount = encodeURIComponent(account);
-    const encodedIssuer = encodeURIComponent(issuer);
-    return `otpauth://totp/${encodedIssuer ? encodedIssuer + ':' : ''}${encodedAccount}?secret=${secret}&issuer=${encodedIssuer}&digits=6&period=30`;
+// 生成OTP URI - 全局作用域
+window.generateOTPURI = function generateOTPURI(account, secret, issuer = '') {
+    // 账户名不需要转义，直接使用原始字符串
+    return `otpauth://totp/${issuer ? issuer + ':' : ''}${account}?secret=${secret}&issuer=${issuer}&digits=6&period=30`;
 }
 
 // 解析OTP URI
@@ -182,8 +181,170 @@ function parseOTPURI(uri) {
 }
 
 // 页面加载完成后执行（仅在浏览器环境中）
-if (typeof window !== 'undefined') {
-    window.addEventListener('DOMContentLoaded', async () => {
+// 显示账户二维码函数 - 全局作用域
+window.showAccountQRCode = function showAccountQRCode(account) {
+    console.log('showAccountQRCode函数被调用，账户信息:', account);
+    
+    // 生成OTP URI
+    console.log('生成OTP URI...');
+    const uri = window.generateOTPURI(account.name, account.secret, account.issuer);
+    console.log('生成的OTP URI:', uri);
+    
+    // 使用简单直接的方式创建一个新的弹窗，不依赖现有的模态框结构
+    console.log('创建新的弹窗来显示二维码...');
+    
+    // 移除现有的弹窗（如果存在）
+    const existingPopup = document.getElementById('simple-qr-popup');
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+    
+    // 创建弹窗容器
+    const popup = document.createElement('div');
+    popup.id = 'simple-qr-popup';
+    popup.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 99999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: auto;
+    `;
+    
+    // 创建弹窗内容
+    const popupContent = document.createElement('div');
+    popupContent.style.cssText = `
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        position: relative;
+    `;
+    
+    // 创建标题
+    const title = document.createElement('h3');
+    title.textContent = '账户二维码';
+    title.style.cssText = `
+        margin-top: 0;
+        margin-bottom: 20px;
+    `;
+    popupContent.appendChild(title);
+    
+    // 创建关闭按钮
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+        line-height: 1;
+        padding: 0;
+    `;
+    closeBtn.onclick = function() {
+        popup.remove();
+    };
+    popupContent.appendChild(closeBtn);
+    
+    // 创建二维码容器
+    const qrContainer = document.createElement('div');
+    qrContainer.style.cssText = `
+        margin: 20px auto;
+        width: 240px;
+        height: 240px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: white;
+    `;
+    
+    // 直接显示OTP URI
+    const uriDisplay = document.createElement('div');
+    uriDisplay.innerHTML = `
+        <div style="margin-bottom: 10px; font-weight: bold;">OTP URI:</div>
+        <textarea style="width: 100%; height: 120px; font-family: monospace; font-size: 12px; resize: vertical; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">${uri}</textarea>
+        <div style="margin-top: 10px; font-size: 14px; color: #666;">请复制此URI到您的认证器应用中</div>
+    `;
+    qrContainer.appendChild(uriDisplay);
+    popupContent.appendChild(qrContainer);
+    
+    // 添加到弹窗容器
+    popup.appendChild(popupContent);
+    
+    // 添加到页面
+    document.body.appendChild(popup);
+    
+    // 添加点击外部关闭功能
+    popup.addEventListener('click', function(e) {
+        if (e.target === popup) {
+            popup.remove();
+        }
+    });
+    
+    // 显示成功信息
+    console.log('简单弹窗已创建并显示');
+    console.log('弹窗元素:', popup);
+    
+    // 添加一个明显的提示
+    console.log('二维码弹窗已显示，请查看页面中央的白色弹窗');
+    
+    return;
+    
+    // 旧的模态框逻辑已被替换，以下代码不再执行
+    if (false) {
+        console.error('找不到二维码模态框元素');
+        alert('找不到二维码模态框元素');
+    }
+};
+
+// 备用二维码显示方式
+window.displayAlternativeQR = function displayAlternativeQR(container, uri) {
+    // 创建一个div来显示OTP URI
+    const uriDiv = document.createElement('div');
+    uriDiv.className = 'otp-uri-display';
+    uriDiv.innerHTML = `
+        <h3>OTP URI</h3>
+        <textarea readonly onclick="this.select()">${uri}</textarea>
+        <p>您可以将此URI复制到其他认证器应用中</p>
+    `;
+    container.appendChild(uriDiv);
+    
+    // 添加一些样式
+    const style = document.createElement('style');
+    style.textContent = `
+        .otp-uri-display {
+            text-align: center;
+            padding: 20px;
+        }
+        .otp-uri-display textarea {
+            width: 100%;
+            min-height: 100px;
+            margin: 10px 0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+        .otp-uri-display p {
+            color: #666;
+            font-size: 14px;
+        }
+    `;
+    container.appendChild(style);
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
     // 用户认证相关变量
     let currentUser = null;
     let accounts = [];
@@ -205,11 +366,6 @@ if (typeof window !== 'undefined') {
     const addAccountBtn = document.getElementById('add-account-form');
     const qrcodeEl = document.getElementById('qrcode-container');
     const accountsListEl = document.getElementById('accounts-list');
-    
-    // 二维码显示模态框相关
-    const showQrModal = document.getElementById('show-qr-modal');
-    const closeShowQrModalBtn = document.getElementById('close-show-qr-modal');
-    const showQrContainer = document.getElementById('show-qr-container');
     
     // 功能区域相关
     const addAccountSection = document.getElementById('add-account-section');
@@ -381,39 +537,11 @@ if (typeof window !== 'undefined') {
         });
     }
     
-    // 点击模态框外部关闭
-    window.addEventListener('click', (e) => {
-        if (settingsModal && e.target === settingsModal) {
-            settingsModal.style.display = 'none';
-        }
-        if (showQrModal && e.target === showQrModal) {
-            showQrModal.style.display = 'none';
-        }
-    });
-    
-    // 显示账户二维码
-    function showAccountQRCode(account) {
-        if (showQrModal && showQrContainer) {
-            // 生成OTP URI
-            const uri = generateOTPURI(account.name, account.secret, account.issuer);
-            
-            // 清空容器并生成新的二维码
-            showQrContainer.innerHTML = '';
-            new QRCode(showQrContainer, {
-                text: uri,
-                width: 200,
-                height: 200,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            
-            // 显示模态框
-            showQrModal.style.display = 'block';
-        }
-    }
-    
     // 关闭二维码显示模态框
+    // 为二维码弹框的关闭按钮添加事件监听器
+    // 在DOMContentLoaded事件中获取showQrModal元素
+    const showQrModal = document.getElementById('show-qr-modal');
+    
     // 为二维码弹框的关闭按钮添加事件监听器
     const qrModalCloseBtn = showQrModal ? showQrModal.querySelector('.close') : null;
     if (qrModalCloseBtn) {
@@ -426,6 +554,9 @@ if (typeof window !== 'undefined') {
     
     // 点击二维码弹框外部关闭
     window.addEventListener('click', (e) => {
+        if (settingsModal && e.target === settingsModal) {
+            settingsModal.style.display = 'none';
+        }
         if (showQrModal && e.target === showQrModal) {
             showQrModal.style.display = 'none';
         }
@@ -711,7 +842,42 @@ if (typeof window !== 'undefined') {
             alert('无效的二维码，请扫描Google身份验证器二维码');
         }
     }
-    
+
+// 解析OTP URI
+function parseOTPURI(uri) {
+    try {
+        // 检查是否为otpauth URI
+        if (!uri.startsWith('otpauth://')) {
+            throw new Error('不是有效的OTP URI');
+        }
+        
+        // 解析URI
+        const url = new URL(uri);
+        const type = url.pathname.slice(1); // 移除开头的斜杠
+        const params = new URLSearchParams(url.search);
+        
+        // 提取必要参数
+        const secret = params.get('secret');
+        const name = decodeURIComponent(url.pathname.split('/').pop());
+        const issuer = params.get('issuer') || '';
+        
+        // 验证必要参数
+        if (!secret) {
+            throw new Error('缺少secret参数');
+        }
+        
+        return {
+            type,
+            name,
+            secret,
+            issuer
+        };
+    } catch (error) {
+        console.error('解析OTP URI失败:', error);
+        throw error;
+    }
+}
+
     // 显示动态密钥
     async function showDynamicKey(otpInfo) {
         // 创建动态密钥显示区域
@@ -1123,14 +1289,17 @@ if (typeof window !== 'undefined') {
         try {
             const users = await ApiService.getUsers();
             
-            if (users.length === 0) {
+            // 过滤出普通用户
+            const regularUsers = users.filter(user => user.role === 'user');
+            
+            if (regularUsers.length === 0) {
                 alert('没有可共享的普通用户');
                 return;
             }
             
             // 创建用户选择列表
-            const userOptions = users.filter(user => user.role === 'user')
-                .map(user => `${user.username} (ID: ${user._id})`)
+            const userOptions = regularUsers
+                .map(user => `${user.username} (ID: ${user.id || user._id})`)
                 .join('\n');
             
             const selectedUsername = prompt(`请选择要共享给的用户:\n${userOptions}\n\n输入用户名:`);
@@ -1138,7 +1307,7 @@ if (typeof window !== 'undefined') {
             if (!selectedUsername) return;
             
             // 查找匹配的用户
-            const user = users.find(u => 
+            const user = regularUsers.find(u => 
                 u.username === selectedUsername.trim()
             );
             
@@ -1147,7 +1316,15 @@ if (typeof window !== 'undefined') {
                 return;
             }
             
-            await ApiService.shareAccount(accountId, user._id);
+            // 获取用户ID，兼容id和_id
+            const userId = user.id || user._id;
+            
+            if (!userId) {
+                alert('用户ID无效');
+                return;
+            }
+            
+            await ApiService.shareAccount(accountId, userId);
             alert('账户共享成功');
             await renderAccounts();
         } catch (error) {
@@ -1174,10 +1351,14 @@ if (typeof window !== 'undefined') {
                     // 检查是否是当前用户创建的账户（只有创建者可以共享）
                     const isOwner = account.userId === currentUser.id;
                     
+                    // 解码账户名和发行者
+                    const decodedName = decodeURIComponent(account.name);
+                    const decodedIssuer = account.issuer ? decodeURIComponent(account.issuer) : '无发行者';
+                    
                     // 构建账户操作按钮
                     let actionButtons = '';
-                    if (isOwner) {
-                        // 管理员或创建者可以删除、共享和查看二维码
+                    if (isOwner && currentUser.role === 'admin') {
+                        // 只有管理员可以删除、共享和查看二维码
                         actionButtons = `
                             <div class="account-actions">
                                 <button class="btn btn-secondary show-qr-btn" data-id="${account._id}">显示二维码</button>
@@ -1186,18 +1367,18 @@ if (typeof window !== 'undefined') {
                             </div>
                         `;
                     } else {
-                        // 共享账户只能查看，不能删除或共享
+                        // 非管理员或共享账户只能查看，不能删除或共享
                         actionButtons = '';
                     }
                     
                     accountEl.innerHTML = `
                         <div class="account-info">
-                            <h3>${account.name}</h3>
-                            <p>${account.issuer || '无发行者'}</p>
+                            <h3>${decodedName}</h3>
+                            <p>${decodedIssuer}</p>
                             ${isOwner ? '<span class="account-owner">（所有者）</span>' : '<span class="account-shared">（共享）</span>'}
                         </div>
                         <div class="totp-container">
-                            <div class="totp-code">${otp || '生成失败'}</div>
+                            <div class="totp-code" title="点击复制密钥">${otp || '生成失败'}</div>
                             <div class="countdown-container">
                                 <div class="countdown-bar" style="width: ${(timeLeft / 30) * 100}%"></div>
                                 <div class="countdown-text">${timeLeft}s</div>
@@ -1205,6 +1386,23 @@ if (typeof window !== 'undefined') {
                         </div>
                         ${actionButtons}
                     `;
+                    
+                    // 添加点击复制TOTP码事件
+                    const totpCodeEl = accountEl.querySelector('.totp-code');
+                    if (totpCodeEl) {
+                        totpCodeEl.addEventListener('click', async () => {
+                            const totpCode = totpCodeEl.textContent;
+                            if (totpCode && totpCode !== '生成中...' && totpCode !== '生成失败') {
+                                try {
+                                    await navigator.clipboard.writeText(totpCode);
+                                    showToast('动态密钥已复制到剪贴板', 'success');
+                                } catch (error) {
+                                    console.error('复制失败:', error);
+                                    showToast('复制失败，请手动复制', 'error');
+                                }
+                            }
+                        });
+                    }
                     
                     // 添加删除按钮事件监听
                     const deleteBtn = accountEl.querySelector('.delete-account');
@@ -1325,4 +1523,3 @@ if (typeof window !== 'undefined') {
     // 初始化应用
     checkUserStatus();
 });
-}
