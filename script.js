@@ -39,9 +39,8 @@ async function hmacSHA1(key, message) {
         key = encoder.encode(key);
     }
     
-    // 检查Web Crypto API是否可用
+    // 只使用Web Crypto API，现代浏览器都支持
     if (typeof crypto !== 'undefined' && crypto.subtle) {
-        // 使用Web Crypto API实现HMAC-SHA1
         try {
             const importedKey = await crypto.subtle.importKey(
                 'raw',
@@ -60,163 +59,15 @@ async function hmacSHA1(key, message) {
             return new Uint8Array(signature);
         } catch (error) {
             console.error('Web Crypto API HMAC-SHA1 error:', error);
-            // 如果Web Crypto API失败，尝试使用替代实现
-            return hmacSHA1Fallback(key, message);
+            throw error;
         }
     } else {
-        // Web Crypto API不可用时，使用替代实现
-        return hmacSHA1Fallback(key, message);
+        // Web Crypto API不可用时，抛出错误
+        throw new Error('Web Crypto API is not available');
     }
 }
 
-// HMAC-SHA1替代实现（当Web Crypto API不可用时使用）
-function hmacSHA1Fallback(key, message) {
-    // 纯JavaScript SHA1实现
-    function sha1(data) {
-        // 转换为Uint8Array
-        if (typeof data === 'string') {
-            const encoder = new TextEncoder();
-            data = encoder.encode(data);
-        }
-        
-        // SHA1常量
-        const K = [0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6];
-        
-        // 初始化哈希值
-        let h0 = 0x67452301;
-        let h1 = 0xEFCDAB89;
-        let h2 = 0x98BADCFE;
-        let h3 = 0x10325476;
-        let h4 = 0xC3D2E1F0;
-        
-        // 填充数据
-        const originalLength = data.length * 8;
-        let paddedData = new Uint8Array(data.length + 1 + ((64 - ((data.length + 1 + 8) % 64)) % 64) + 8);
-        paddedData.set(data);
-        paddedData[data.length] = 0x80;
-        
-        // 添加原始长度（大端序）
-        for (let i = 0; i < 8; i++) {
-            paddedData[paddedData.length - 1 - i] = (originalLength >>> (i * 8)) & 0xFF;
-        }
-        
-        // 处理512位块
-        for (let i = 0; i < paddedData.length; i += 64) {
-            const block = paddedData.subarray(i, i + 64);
-            const w = new Array(80);
-            
-            // 前16个单词直接从块中获取
-            for (let t = 0; t < 16; t++) {
-                w[t] = (block[t * 4] << 24) | (block[t * 4 + 1] << 16) | (block[t * 4 + 2] << 8) | block[t * 4 + 3];
-            }
-            
-            // 扩展剩余的64个单词
-            for (let t = 16; t < 80; t++) {
-                w[t] = ((w[t - 3] ^ w[t - 8] ^ w[t - 14] ^ w[t - 16]) << 1) | ((w[t - 3] ^ w[t - 8] ^ w[t - 14] ^ w[t - 16]) >>> 31);
-            }
-            
-            // 初始化变量
-            let a = h0;
-            let b = h1;
-            let c = h2;
-            let d = h3;
-            let e = h4;
-            
-            // 主循环
-            for (let t = 0; t < 80; t++) {
-                let f, k;
-                if (t < 20) {
-                    f = (b & c) | (~b & d);
-                    k = K[0];
-                } else if (t < 40) {
-                    f = b ^ c ^ d;
-                    k = K[1];
-                } else if (t < 60) {
-                    f = (b & c) | (b & d) | (c & d);
-                    k = K[2];
-                } else {
-                    f = b ^ c ^ d;
-                    k = K[3];
-                }
-                
-                const temp = (((a << 5) | (a >>> 27)) + f + e + k + w[t]) & 0xFFFFFFFF;
-                e = d;
-                d = c;
-                c = ((b << 30) | (b >>> 2)) & 0xFFFFFFFF;
-                b = a;
-                a = temp;
-            }
-            
-            // 更新哈希值
-            h0 = (h0 + a) & 0xFFFFFFFF;
-            h1 = (h1 + b) & 0xFFFFFFFF;
-            h2 = (h2 + c) & 0xFFFFFFFF;
-            h3 = (h3 + d) & 0xFFFFFFFF;
-            h4 = (h4 + e) & 0xFFFFFFFF;
-        }
-        
-        // 转换为Uint8Array
-        const result = new Uint8Array(20);
-        result[0] = (h0 >>> 24) & 0xFF;
-        result[1] = (h0 >>> 16) & 0xFF;
-        result[2] = (h0 >>> 8) & 0xFF;
-        result[3] = h0 & 0xFF;
-        result[4] = (h1 >>> 24) & 0xFF;
-        result[5] = (h1 >>> 16) & 0xFF;
-        result[6] = (h1 >>> 8) & 0xFF;
-        result[7] = h1 & 0xFF;
-        result[8] = (h2 >>> 24) & 0xFF;
-        result[9] = (h2 >>> 16) & 0xFF;
-        result[10] = (h2 >>> 8) & 0xFF;
-        result[11] = h2 & 0xFF;
-        result[12] = (h3 >>> 24) & 0xFF;
-        result[13] = (h3 >>> 16) & 0xFF;
-        result[14] = (h3 >>> 8) & 0xFF;
-        result[15] = h3 & 0xFF;
-        result[16] = (h4 >>> 24) & 0xFF;
-        result[17] = (h4 >>> 16) & 0xFF;
-        result[18] = (h4 >>> 8) & 0xFF;
-        result[19] = h4 & 0xFF;
-        
-        return result;
-    }
-    
-    // HMAC计算逻辑
-    const blockSize = 64;
-    const keyPadding = new Uint8Array(blockSize);
-    
-    // 调整密钥长度
-    let adjustedKey = key;
-    if (key.length > blockSize) {
-        adjustedKey = sha1(key);
-    }
-    
-    // 填充密钥
-    keyPadding.set(adjustedKey);
-    
-    // 计算内层和外层密钥
-    const innerKeyPad = new Uint8Array(blockSize);
-    const outerKeyPad = new Uint8Array(blockSize);
-    
-    for (let i = 0; i < blockSize; i++) {
-        innerKeyPad[i] = keyPadding[i] ^ 0x36;
-        outerKeyPad[i] = keyPadding[i] ^ 0x5C;
-    }
-    
-    // 计算内层哈希
-    const innerData = new Uint8Array(innerKeyPad.length + message.length);
-    innerData.set(innerKeyPad);
-    innerData.set(message, innerKeyPad.length);
-    const innerHash = sha1(innerData);
-    
-    // 计算外层哈希
-    const outerData = new Uint8Array(outerKeyPad.length + innerHash.length);
-    outerData.set(outerKeyPad);
-    outerData.set(innerHash, outerKeyPad.length);
-    const outerHash = sha1(outerData);
-    
-    return outerHash;
-}
+
 
 // 生成TOTP
 async function generateTOTP(secret, digits = 6, period = 30) {
@@ -330,8 +181,9 @@ function parseOTPURI(uri) {
     };
 }
 
-// 页面加载完成后执行
-window.addEventListener('DOMContentLoaded', async () => {
+// 页面加载完成后执行（仅在浏览器环境中）
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', async () => {
     // 用户认证相关变量
     let currentUser = null;
     let accounts = [];
@@ -1516,3 +1368,4 @@ window.addEventListener('DOMContentLoaded', async () => {
     // 初始化应用
     checkUserStatus();
 });
+}
