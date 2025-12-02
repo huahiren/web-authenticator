@@ -1,6 +1,7 @@
 // API服务层，用于处理与后端的通信
+import config from './config.js';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = config.API_BASE_URL;
 
 class ApiService {
   // 获取认证令牌

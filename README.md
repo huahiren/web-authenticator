@@ -250,14 +250,16 @@ pm startup
 编辑前端的`api-service.js`文件，将API_BASE_URL修改为后端服务的实际地址：
 
 ```bash
-# 编辑api-service.js文件
-vi api-service.js
+# 编辑config.js文件
+vi config.js
 ```
 
-修改第3行：
+修改配置：
 ```javascript
 // 将localhost:3000替换为你的服务器IP或域名
-const API_BASE_URL = 'http://your-server-ip:3000/api';
+const config = {
+  API_BASE_URL: 'http://your-server-ip:3000/api'
+};
 ```
 
 #### 4.2 部署静态文件
@@ -384,7 +386,7 @@ pm logs
 ## 故障排查
 
 1. **前端无法连接到后端**：
-   - 检查`api-service.js`中的API_BASE_URL配置是否正确
+   - 检查`config.js`中的API_BASE_URL配置是否正确
    - 检查后端服务是否正在运行
    - 检查防火墙设置是否允许端口访问
 
