@@ -1,0 +1,8 @@
+// 配置文件示例
+// 复制此文件并重命名为config.js，然后根据实际情况修改配置
+const config = {
+  API_BASE_URL: 'http://localhost:3000/api'
+};
+
+// 导出配置对象
+export default config;
