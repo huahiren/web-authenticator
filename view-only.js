@@ -1,80 +1,71 @@
 // 只读视图版本的Google Authenticator
 
 // Base32解码函数
-function base32Decode(str) {
+function base32Decode(base32) {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    str = str.toUpperCase().replace(/=+$/, '');
     let bits = '';
-    let result = '';
     
-    for (let i = 0; i < str.length; i++) {
-        const index = alphabet.indexOf(str[i]);
-        if (index === -1) throw new Error('Invalid base32 character: ' + str[i]);
+    // 移除空格并转换为大写
+    base32 = base32.replace(/\s+/g, '').toUpperCase();
+    
+    // 将Base32字符转换为二进制字符串
+    for (let i = 0; i < base32.length; i++) {
+        const index = alphabet.indexOf(base32.charAt(i));
+        if (index === -1) {
+            throw new Error(`Invalid base32 character: ${base32.charAt(i)}`);
+        }
         bits += index.toString(2).padStart(5, '0');
     }
     
+    // 将二进制字符串转换为Uint8Array
+    const bytes = [];
     for (let i = 0; i + 8 <= bits.length; i += 8) {
-        result += String.fromCharCode(parseInt(bits.substr(i, 8), 2));
+        bytes.push(parseInt(bits.substr(i, 8), 2));
     }
     
-    return result;
+    return new Uint8Array(bytes);
 }
 
-// HMAC-SHA1计算
-function hmacSHA1(key, data) {
-    const crypto = window.crypto || window.msCrypto;
-    
-    if (!crypto || !crypto.subtle) {
-        console.error('Web Crypto API not supported');
+// HMAC-SHA1函数
+async function hmacSHA1(key, message) {
+    // 使用Web Crypto API实现HMAC-SHA1
+    try {
+        const crypto = window.crypto || window.msCrypto;
+        
+        if (!crypto || !crypto.subtle) {
+            throw new Error('Web Crypto API not supported');
+        }
+        
+        // 确保key是Uint8Array
+        if (typeof key === 'string') {
+            const encoder = new TextEncoder();
+            key = encoder.encode(key);
+        }
+        
+        // 确保message是Uint8Array
+        if (!(message instanceof Uint8Array)) {
+            throw new Error('Message must be a Uint8Array');
+        }
+        
+        const importedKey = await crypto.subtle.importKey(
+            'raw',
+            key,
+            { name: 'HMAC', hash: { name: 'SHA-1' } },
+            false,
+            ['sign']
+        );
+        
+        const signature = await crypto.subtle.sign(
+            'HMAC',
+            importedKey,
+            message
+        );
+        
+        return new Uint8Array(signature);
+    } catch (error) {
+        console.error('HMAC-SHA1 error:', error);
         return null;
     }
-    
-    // 将字符串转换为ArrayBuffer
-    function str2ab(str) {
-        const buf = new ArrayBuffer(str.length);
-        const bufView = new Uint8Array(buf);
-        for (let i = 0; i < str.length; i++) {
-            bufView[i] = str.charCodeAt(i);
-        }
-        return buf;
-    }
-    
-    // 生成HMAC密钥
-    const importKey = async () => {
-        try {
-            return await crypto.subtle.importKey(
-                'raw',
-                str2ab(key),
-                { name: 'HMAC', hash: 'SHA-1' },
-                false,
-                ['sign']
-            );
-        } catch (error) {
-            console.error('Error importing key:', error);
-            return null;
-        }
-    };
-    
-    // 计算HMAC
-    const computeHMAC = async () => {
-        try {
-            const cryptoKey = await importKey();
-            if (!cryptoKey) return null;
-            
-            const signature = await crypto.subtle.sign(
-                'HMAC',
-                cryptoKey,
-                str2ab(data)
-            );
-            
-            return new Uint8Array(signature);
-        } catch (error) {
-            console.error('Error computing HMAC:', error);
-            return null;
-        }
-    };
-    
-    return computeHMAC();
 }
 
 // 生成TOTP密码
@@ -87,13 +78,18 @@ async function generateTOTP(secret, digits = 6, period = 30) {
         const now = Math.floor(Date.now() / 1000);
         const timeStep = Math.floor(now / period);
         
-        // 将时间步长转换为8字节的缓冲区
+        // 将时间步长转换为8字节的缓冲区（大端序）
         let buffer = new ArrayBuffer(8);
         let dataView = new DataView(buffer);
-        dataView.setUint32(4, timeStep, false);
+        // 正确处理8字节时间步长（大端序）
+        // 使用BigInt确保正确处理大数值
+        let bigTimeStep = BigInt(timeStep);
+        for (let i = 0; i < 8; i++) {
+            dataView.setUint8(7 - i, Number((bigTimeStep >> BigInt(i * 8)) & 0xFFn));
+        }
         
         // 计算HMAC-SHA1
-        const hmac = await hmacSHA1(key, new TextDecoder().decode(buffer));
+        const hmac = await hmacSHA1(key, new Uint8Array(buffer));
         if (!hmac) return null;
         
         // 提取动态截断值

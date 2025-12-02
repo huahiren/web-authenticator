@@ -4,38 +4,62 @@
 function base32Decode(base32) {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     let bits = '';
-    let result = '';
     
+    // 移除空格并转换为大写
+    base32 = base32.replace(/\s+/g, '').toUpperCase();
+    
+    // 将Base32字符转换为二进制字符串
     for (let i = 0; i < base32.length; i++) {
-        const index = alphabet.indexOf(base32.charAt(i).toUpperCase());
+        const index = alphabet.indexOf(base32.charAt(i));
+        if (index === -1) {
+            throw new Error(`Invalid base32 character: ${base32.charAt(i)}`);
+        }
         bits += index.toString(2).padStart(5, '0');
     }
     
+    // 将二进制字符串转换为Uint8Array
+    const bytes = [];
     for (let i = 0; i + 8 <= bits.length; i += 8) {
-        result += String.fromCharCode(parseInt(bits.substr(i, 8), 2));
+        bytes.push(parseInt(bits.substr(i, 8), 2));
     }
     
-    return result;
+    return new Uint8Array(bytes);
 }
 
 // HMAC-SHA1函数
-function hmacSHA1(key, message) {
+async function hmacSHA1(key, message) {
     // 使用Web Crypto API实现HMAC-SHA1
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(key);
-    const messageData = encoder.encode(message);
-    
-    return crypto.subtle.importKey(
-        'raw',
-        keyData,
-        { name: 'HMAC', hash: { name: 'SHA-1' } },
-        false,
-        ['sign']
-    ).then(importedKey => {
-        return crypto.subtle.sign('HMAC', importedKey, messageData);
-    }).then(signature => {
+    try {
+        // 确保key是Uint8Array
+        if (typeof key === 'string') {
+            const encoder = new TextEncoder();
+            key = encoder.encode(key);
+        }
+        
+        // 确保message是Uint8Array
+        if (!(message instanceof Uint8Array)) {
+            throw new Error('Message must be a Uint8Array');
+        }
+        
+        const importedKey = await crypto.subtle.importKey(
+            'raw',
+            key,
+            { name: 'HMAC', hash: { name: 'SHA-1' } },
+            false,
+            ['sign']
+        );
+        
+        const signature = await crypto.subtle.sign(
+            'HMAC',
+            importedKey,
+            message
+        );
+        
         return new Uint8Array(signature);
-    });
+    } catch (error) {
+        console.error('HMAC-SHA1 error:', error);
+        throw error;
+    }
 }
 
 // 生成TOTP
@@ -47,10 +71,15 @@ async function generateTOTP(secret, digits = 6, period = 30) {
     const now = Math.floor(Date.now() / 1000);
     const timeStep = Math.floor(now / period);
     
-    // 将时间步长转换为8字节的缓冲区
+    // 将时间步长转换为8字节的缓冲区（大端序）
     const buffer = new ArrayBuffer(8);
     const view = new DataView(buffer);
-    view.setUint32(4, timeStep);
+    // 正确处理8字节时间步长（大端序）
+    // 使用BigInt确保正确处理大数值
+    let bigTimeStep = BigInt(timeStep);
+    for (let i = 0; i < 8; i++) {
+        view.setUint8(7 - i, Number((bigTimeStep >> BigInt(i * 8)) & 0xFFn));
+    }
     
     // 计算HMAC-SHA1
     const hmac = await hmacSHA1(decodedSecret, new Uint8Array(buffer));

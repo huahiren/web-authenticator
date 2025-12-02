@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户案例调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .test-case {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 20px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .step {
+            margin: 15px 0;
+        }
+        .step-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .step-value {
+            margin-left: 20px;
+            font-family: monospace;
+        }
+        .debug-array {
+            background-color: #f0f8ff;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>用户案例调试</h1>
+        
+        <div class="test-case">
+            <h2>测试案例</h2>
+            <p><strong>密钥:</strong> QV3BOGNJFKHCQPQ7QXJDPJLJD3T7BWQE</p>
+            <p><strong>时间:</strong> 2025-12-02 10:19:00</p>
+            <p><strong>时间格式:</strong>
+                <select id="time-format">
+                    <option value="utc">UTC时间</option>
+                    <option value="local" selected>本地时间</option>
+                </select>
+            </p>
+            <p><strong>预期动态码:</strong> 271406</p>
+            <button onclick="main()">重新测试</button>
+        </div>
+        
+        <div id="debug-info">
+            <!-- 调试信息将在这里显示 -->
+        </div>
+        
+        <div id="result" class="result">
+            <!-- 结果将在这里显示 -->
+        </div>
+    </div>
+    
+    <script>
+        // 复制修复后的函数
+        
+        // Base32解码函数
+        function base32Decode(base32) {
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            let bits = '';
+            
+            // 移除空格并转换为大写
+            base32 = base32.replace(/\s+/g, '').toUpperCase();
+            
+            // 将Base32字符转换为二进制字符串
+            for (let i = 0; i < base32.length; i++) {
+                const index = alphabet.indexOf(base32.charAt(i));
+                if (index === -1) {
+                    throw new Error(`Invalid base32 character: ${base32.charAt(i)}`);
+                }
+                bits += index.toString(2).padStart(5, '0');
+            }
+            
+            // 将二进制字符串转换为Uint8Array
+            const bytes = [];
+            for (let i = 0; i + 8 <= bits.length; i += 8) {
+                bytes.push(parseInt(bits.substr(i, 8), 2));
+            }
+            
+            return new Uint8Array(bytes);
+        }
+        
+        // HMAC-SHA1函数
+        async function hmacSHA1(key, message) {
+            // 使用Web Crypto API实现HMAC-SHA1
+            try {
+                // 确保key是Uint8Array
+                if (typeof key === 'string') {
+                    const encoder = new TextEncoder();
+                    key = encoder.encode(key);
+                }
+                
+                // 确保message是Uint8Array
+                if (!(message instanceof Uint8Array)) {
+                    throw new Error('Message must be a Uint8Array');
+                }
+                
+                const importedKey = await crypto.subtle.importKey(
+                    'raw',
+                    key,
+                    { name: 'HMAC', hash: { name: 'SHA-1' } },
+                    false,
+                    ['sign']
+                );
+                
+                const signature = await crypto.subtle.sign(
+                    'HMAC',
+                    importedKey,
+                    message
+                );
+                
+                return new Uint8Array(signature);
+            } catch (error) {
+                console.error('HMAC-SHA1 error:', error);
+                throw error;
+            }
+        }
+        
+        // 生成TOTP
+        async function generateTOTP(secret, digits = 6, period = 30, timestamp = Date.now()) {
+            try {
+                // 1. 解码Base32密钥
+                const decodedSecret = base32Decode(secret);
+                logStep('1. 解码Base32密钥', secret);
+                logStep('   解码结果', Array.from(decodedSecret).map(b => b.toString(16).padStart(2, '0')).join(' '), 'debug-array');
+                
+                // 2. 获取当前时间步长
+                const now = Math.floor(timestamp / 1000);
+                const timeStep = Math.floor(now / period);
+                logStep('2. 时间处理', `时间戳: ${timestamp} ms (${new Date(timestamp).toLocaleString()})`);
+                logStep('   时间戳（秒）', now);
+                logStep('   时间步长', timeStep);
+                logStep('   时间步长（十六进制）', timeStep.toString(16).padStart(16, '0'));
+                
+                // 3. 将时间步长转换为8字节的缓冲区（大端序）
+                const buffer = new ArrayBuffer(8);
+                const view = new DataView(buffer);
+                
+                // 修复后的时间步长处理方式
+                // 正确处理8字节时间步长（大端序）
+                for (let i = 0; i < 8; i++) {
+                    view.setUint8(7 - i, (timeStep >> (i * 8)) & 0xFF);
+                }
+                
+                const timeBuffer = new Uint8Array(buffer);
+                logStep('3. 8字节时间缓冲区（大端序）', Array.from(timeBuffer).map(b => b.toString(16).padStart(2, '0')).join(' '), 'debug-array');
+                
+                // 4. 计算HMAC-SHA1
+                const hmac = await hmacSHA1(decodedSecret, timeBuffer);
+                logStep('4. HMAC-SHA1结果', Array.from(hmac).map(b => b.toString(16).padStart(2, '0')).join(' '), 'debug-array');
+                logStep('   HMAC长度', hmac.length);
+                
+                // 5. 动态截断
+                const offset = hmac[hmac.length - 1] & 0x0F;
+                logStep('5. 动态截断', `偏移量: ${offset}`);
+                
+                // 6. 计算截断前的值
+                const code = ((hmac[offset] & 0x7F) << 24) |
+                             ((hmac[offset + 1] & 0xFF) << 16) |
+                             ((hmac[offset + 2] & 0xFF) << 8) |
+                             (hmac[offset + 3] & 0xFF);
+                logStep('6. 截断前的值', code + ' (0x' + code.toString(16).padStart(8, '0') + ')');
+                
+                // 7. 取模得到指定长度的验证码
+                const otp = code % Math.pow(10, digits);
+                logStep('7. 取模后的值', otp);
+                
+                // 8. 补前导零
+                const result = otp.toString().padStart(digits, '0');
+                logStep('8. 最终TOTP', result);
+                
+                return result;
+            } catch (error) {
+                console.error('TOTP生成错误:', error);
+                document.getElementById('result').innerHTML = `<p>错误: ${error.message}</p>`;
+                document.getElementById('result').className = 'result error';
+                throw error;
+            }
+        }
+        
+        // 日志函数
+        function logStep(label, value, className = 'step-value') {
+            const debugInfo = document.getElementById('debug-info');
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step';
+            stepDiv.innerHTML = `
+                <div class="step-label">${label}:</div>
+                <div class="${className}">${value}</div>
+            `;
+            debugInfo.appendChild(stepDiv);
+        }
+        
+        // 主函数
+        async function main() {
+            // 清空之前的调试信息
+            document.getElementById('debug-info').innerHTML = '';
+            
+            const secret = 'QV3BOGNJFKHCQPQ7QXJDPJLJD3T7BWQE';
+            const timeStr = '2025-12-02 10:19:00';
+            const expected = '271406';
+            const timeFormat = document.getElementById('time-format').value;
+            
+            // 直接使用固定时间戳，这个时间戳对应时间步长58821398
+            const timestamp = 1764641940000;
+            
+            console.log('测试案例:', {
+                secret: secret,
+                timeStr: timeStr,
+                timeFormat: timeFormat,
+                timestamp: timestamp,
+                expected: expected
+            });
+            
+            try {
+                const otp = await generateTOTP(secret, 6, 30, timestamp);
+                
+                const resultDiv = document.getElementById('result');
+                if (otp === expected) {
+                    resultDiv.innerHTML = `<p>✓ 成功！生成的动态码与预期一致</p><p>生成的动态码: <strong>${otp}</strong></p><p>预期动态码: <strong>${expected}</strong></p>`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.innerHTML = `<p>✗ 失败！生成的动态码与预期不一致</p><p>生成的动态码: <strong>${otp}</strong></p><p>预期动态码: <strong>${expected}</strong></p>`;
+                    resultDiv.className = 'result error';
+                }
+                
+                // 控制台输出详细结果
+                console.log('===== 测试结果 =====');
+                console.log('生成的动态码:', otp);
+                console.log('预期动态码:', expected);
+                console.log('匹配结果:', otp === expected ? '成功' : '失败');
+            } catch (error) {
+                console.error('测试失败:', error);
+            }
+        }
+        
+        // 页面加载时运行
+        window.addEventListener('DOMContentLoaded', main);
+    </script>
+</body>
+</html>
