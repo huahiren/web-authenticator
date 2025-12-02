@@ -96,10 +96,48 @@ Web Authenticator是一个基于Web的双因素认证（2FA）管理工具，用
 
 ## 部署指南
 
+## 安卓APP支持
+
+Web Authenticator 也提供了安卓APP版本，基于WebView封装，提供原生应用体验。
+
+### 1. 构建安卓APP
+
+#### 1.1 准备开发环境
+- 安装Android Studio
+- 安装Java Development Kit (JDK) 17或更高版本
+- 配置Android SDK
+
+#### 1.2 构建APP
+1. 打开Android Studio
+2. 点击"Open"，选择项目根目录下的`android`文件夹
+3. 等待项目同步完成
+4. 连接安卓设备或启动模拟器
+5. 点击"Run"按钮构建并运行APP
+
+### 2. 使用安卓APP
+
+#### 2.1 首次使用
+1. 安装并打开Web Authenticator APP
+2. 在欢迎界面点击"注册"或"登录"
+3. 输入您的账户信息进行登录
+
+#### 2.2 功能使用
+- **添加账户**：点击"添加账户"按钮，扫描二维码或手动输入
+- **查看TOTP码**：在主界面查看所有账户的TOTP码，点击即可复制
+- **管理账户**：长按账户卡片进行编辑或删除
+
+### 3. 安卓APP特性
+- 📱 原生应用体验，无需浏览器
+- 🔐 与Web版本共享同一套后端服务
+- 🔄 实时更新TOTP码
+- 📋 支持扫描二维码添加账户
+- 🎨 响应式设计，适配不同屏幕尺寸
+
 ## 项目结构
 
 - **前端**：HTML/CSS/JavaScript静态文件
 - **后端**：Node.js + Express + MongoDB
+- **安卓APP**：基于WebView的原生封装
 
 ## 部署步骤
 
