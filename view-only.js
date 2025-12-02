@@ -69,46 +69,7 @@ async function hmacSHA1(key, message) {
 }
 
 // 生成TOTP密码
-async function generateTOTP(secret, digits = 6, period = 30) {
-    try {
-        // 解码Base32密钥
-        const key = base32Decode(secret);
-        
-        // 获取当前时间步长
-        const now = Math.floor(Date.now() / 1000);
-        const timeStep = Math.floor(now / period);
-        
-        // 将时间步长转换为8字节的缓冲区（大端序）
-        let buffer = new ArrayBuffer(8);
-        let dataView = new DataView(buffer);
-        // 正确处理8字节时间步长（大端序）
-        // 使用BigInt确保正确处理大数值
-        let bigTimeStep = BigInt(timeStep);
-        for (let i = 0; i < 8; i++) {
-            dataView.setUint8(7 - i, Number((bigTimeStep >> BigInt(i * 8)) & 0xFFn));
-        }
-        
-        // 计算HMAC-SHA1
-        const hmac = await hmacSHA1(key, new Uint8Array(buffer));
-        if (!hmac) return null;
-        
-        // 提取动态截断值
-        const offset = hmac[hmac.length - 1] & 0xf;
-        const binary = (
-            ((hmac[offset] & 0x7f) << 24) |
-            ((hmac[offset + 1] & 0xff) << 16) |
-            ((hmac[offset + 2] & 0xff) << 8) |
-            (hmac[offset + 3] & 0xff)
-        );
-        
-        // 生成TOTP码
-        const otp = binary % Math.pow(10, digits);
-        return otp.toString().padStart(digits, '0');
-    } catch (error) {
-        console.error('Error generating TOTP:', error);
-        return null;
-    }
-}
+// TOTP生成逻辑已移至后端，前端不再需要此函数
 
 // 获取剩余倒计时时间（秒）
 function getRemainingTime(period = 30) {
@@ -134,8 +95,8 @@ async function renderAccounts() {
     
     let html = '';
     for (const account of accounts) {
-        // 生成TOTP
-        const otp = generateTOTP(account.secret);
+        // 使用后端返回的TOTP码
+        const otp = account.totp;
         const timeLeft = getRemainingTime();
         
         // 解码账户名和发行者

@@ -68,40 +68,7 @@ async function hmacSHA1(key, message) {
 }
 
 // 生成TOTP
-async function generateTOTP(secret, digits = 6, period = 30) {
-    // 将Base32密钥转换为二进制
-    const decodedSecret = base32Decode(secret);
-    
-    // 获取当前时间步长
-    const now = Math.floor(Date.now() / 1000);
-    const timeStep = Math.floor(now / period);
-    
-    // 将时间步长转换为8字节的缓冲区（大端序）
-    const buffer = new ArrayBuffer(8);
-    const view = new DataView(buffer);
-    // 正确处理8字节时间步长（大端序）
-    // 使用BigInt确保正确处理大数值
-    let bigTimeStep = BigInt(timeStep);
-    for (let i = 0; i < 8; i++) {
-        view.setUint8(7 - i, Number((bigTimeStep >> BigInt(i * 8)) & 0xFFn));
-    }
-    
-    // 计算HMAC-SHA1
-    const hmac = await hmacSHA1(decodedSecret, new Uint8Array(buffer));
-    
-    // 动态截断
-    const offset = hmac[hmac.length - 1] & 0x0F;
-    const code = ((hmac[offset] & 0x7F) << 24) |
-                 ((hmac[offset + 1] & 0xFF) << 16) |
-                 ((hmac[offset + 2] & 0xFF) << 8) |
-                 (hmac[offset + 3] & 0xFF);
-    
-    // 取模得到指定长度的验证码
-    const otp = code % Math.pow(10, digits);
-    
-    // 补前导零
-    return otp.toString().padStart(digits, '0');
-}
+// TOTP生成逻辑已移至后端，前端不再需要此函数
 
 // 生成OTP URI
 // 全局函数，用于生成OTP URI
@@ -328,8 +295,8 @@ async function renderAccounts() {
             accountEl.className = 'account-item';
             accountEl.dataset.accountId = account._id;
             
-            // 生成TOTP
-            const totp = await generateTOTP(account.secret);
+            // 使用后端返回的TOTP码
+            const totp = account.totp;
             
             // 解码账户名和发行者
             const decodedName = decodeURIComponent(account.name);
@@ -389,7 +356,7 @@ async function renderAccounts() {
                 const accountEl = e.target.closest('.account-item');
                 const accountId = accountEl.dataset.accountId;
                 const account = accounts.find(acc => acc.id === accountId);
-                const totp = await generateTOTP(account.secret);
+                const totp = account.totp;
                 
                 // 复制到剪贴板
                 navigator.clipboard.writeText(totp).then(() => {
@@ -450,7 +417,7 @@ async function updateAllTOTPCodes(accounts) {
         const timeRemaining = 30 - (now % 30);
         
         for (const account of accounts) {
-            const accountEl = document.querySelector(`[data-account-id="${account.id}"]`);
+            const accountEl = document.querySelector(`[data-account-id="${account._id}"]`);
             if (accountEl) {
                 const totpCodeEl = accountEl.querySelector('.totp-code');
                 const countdownBarEl = accountEl.querySelector('.countdown-bar');
@@ -458,8 +425,9 @@ async function updateAllTOTPCodes(accounts) {
                 
                 if (totpCodeEl && countdownBarEl && countdownTextEl) {
                     if (timeRemaining === 30 || timeRemaining === 0) {
-                        const totp = await generateTOTP(account.secret);
-                        totpCodeEl.textContent = totp;
+                        // 当需要刷新TOTP码时，重新从后端获取账户信息
+                        const updatedAccount = await ApiService.getAccount(account._id);
+                        totpCodeEl.textContent = updatedAccount.totp;
                     }
                     
                     const progress = (timeRemaining / 30) * 100;

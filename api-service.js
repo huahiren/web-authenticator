@@ -157,7 +157,11 @@ class ApiService {
   // 获取用户的所有账户
   static async getAccounts() {
     const data = await this.request('/accounts');
-    return data;
+    // 确保每个账户对象都包含id字段，兼容_id和id
+    return data.map(account => ({
+      ...account,
+      id: account.id || account._id
+    }));
   }
 
   // 添加账户
@@ -169,6 +173,16 @@ class ApiService {
   // 获取单个账户详情
   static async getAccount(accountId) {
     const data = await this.request(`/accounts/${accountId}`);
+    // 确保返回的账户对象包含id字段，兼容_id和id
+    return {
+      ...data,
+      id: data.id || data._id
+    };
+  }
+  
+  // 获取账户密钥
+  static async getAccountSecret(accountId) {
+    const data = await this.request(`/accounts/${accountId}/secret`, 'GET');
     return data;
   }
 

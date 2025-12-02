@@ -70,40 +70,7 @@ async function hmacSHA1(key, message) {
 
 
 // 生成TOTP
-async function generateTOTP(secret, digits = 6, period = 30) {
-    // 将Base32密钥转换为二进制
-    const decodedSecret = base32Decode(secret);
-    
-    // 获取当前时间步长
-    const now = Math.floor(Date.now() / 1000);
-    const timeStep = Math.floor(now / period);
-    
-    // 将时间步长转换为8字节的缓冲区（大端序）
-    const buffer = new ArrayBuffer(8);
-    const view = new DataView(buffer);
-    // 正确处理8字节时间步长（大端序）
-    // 使用BigInt确保正确处理大数值
-    let bigTimeStep = BigInt(timeStep);
-    for (let i = 0; i < 8; i++) {
-        view.setUint8(7 - i, Number((bigTimeStep >> BigInt(i * 8)) & 0xFFn));
-    }
-    
-    // 计算HMAC-SHA1
-    const hmac = await hmacSHA1(decodedSecret, new Uint8Array(buffer));
-    
-    // 动态截断
-    const offset = hmac[hmac.length - 1] & 0x0F;
-    const code = ((hmac[offset] & 0x7F) << 24) |
-                 ((hmac[offset + 1] & 0xFF) << 16) |
-                 ((hmac[offset + 2] & 0xFF) << 8) |
-                 (hmac[offset + 3] & 0xFF);
-    
-    // 取模得到指定长度的验证码
-    const otp = code % Math.pow(10, digits);
-    
-    // 补前导零
-    return otp.toString().padStart(digits, '0');
-}
+// TOTP生成逻辑已移至后端，前端不再需要此函数
 
 // 生成随机密钥
 function generateRandomKey(length = 16) {
@@ -892,8 +859,65 @@ function parseOTPURI(uri) {
             mainContent.insertBefore(dynamicKeySection, verifySection.nextSibling);
         }
         
-        // 生成当前的动态密钥
-        const currentOTP = await generateTOTP(otpInfo.secret);
+        // 生成当前的动态密钥（仅用于预览）
+        let currentOTP = '生成中...';
+        try {
+            // 使用本地生成的TOTP码进行预览（因为账户尚未保存到后端）
+            const generateTOTP = (secret) => {
+                try {
+                    // 解码Base32密钥
+                    const key = base32Decode(secret);
+                    
+                    // 获取当前时间步长
+                    const now = Math.floor(Date.now() / 1000);
+                    const timeStep = Math.floor(now / 30);
+                    
+                    // 将时间步长转换为8字节的缓冲区（大端序）
+                    let buffer = new ArrayBuffer(8);
+                    let dataView = new DataView(buffer);
+                    // 正确处理8字节时间步长（大端序）
+                    // 使用BigInt确保正确处理大数值
+                    let bigTimeStep = BigInt(timeStep);
+                    for (let i = 0; i < 8; i++) {
+                        dataView.setUint8(7 - i, Number((bigTimeStep >> BigInt(i * 8)) & 0xFFn));
+                    }
+                    
+                    // 计算HMAC-SHA1
+                    const hmac = crypto.subtle.sign(
+                        {
+                            name: 'HMAC',
+                            hash: 'SHA-1'
+                        },
+                        crypto.subtle.importKey('raw', key, {name: 'HMAC', hash: 'SHA-1'}, false, ['sign']),
+                        new Uint8Array(buffer)
+                    ).then(signature => {
+                        const hmacBytes = new Uint8Array(signature);
+                        
+                        // 提取动态截断值
+                        const offset = hmacBytes[hmacBytes.length - 1] & 0xf;
+                        const binary = (
+                            ((hmacBytes[offset] & 0x7f) << 24) |
+                            ((hmacBytes[offset + 1] & 0xff) << 16) |
+                            ((hmacBytes[offset + 2] & 0xff) << 8) |
+                            (hmacBytes[offset + 3] & 0xff)
+                        );
+                        
+                        // 生成TOTP码
+                        const otp = binary % Math.pow(10, 6);
+                        return otp.toString().padStart(6, '0');
+                    });
+                    return hmac;
+                } catch (error) {
+                    console.error('Error generating TOTP for preview:', error);
+                    return '生成失败';
+                }
+            };
+            
+            currentOTP = await generateTOTP(otpInfo.secret);
+        } catch (error) {
+            console.error('Error generating TOTP for preview:', error);
+            currentOTP = '生成失败';
+        }
         
         // 更新动态密钥显示
         dynamicKeySection.innerHTML = `
@@ -959,12 +983,70 @@ function parseOTPURI(uri) {
             clearInterval(window.dynamicKeyTimer);
         }
         
-        // 更新动态密钥的函数
+        // 更新动态密钥的函数（仅用于预览）
         async function updateKey() {
-            const otpCode = await generateTOTP(secret);
-            const otpCodeElement = document.querySelector('.otp-code');
-            if (otpCodeElement) {
-                otpCodeElement.textContent = otpCode;
+            try {
+                // 使用本地生成的TOTP码进行预览（因为账户尚未保存到后端）
+                const generateTOTP = (secret) => {
+                    try {
+                        // 解码Base32密钥
+                        const key = base32Decode(secret);
+                        
+                        // 获取当前时间步长
+                        const now = Math.floor(Date.now() / 1000);
+                        const timeStep = Math.floor(now / 30);
+                        
+                        // 将时间步长转换为8字节的缓冲区（大端序）
+                        let buffer = new ArrayBuffer(8);
+                        let dataView = new DataView(buffer);
+                        // 正确处理8字节时间步长（大端序）
+                        // 使用BigInt确保正确处理大数值
+                        let bigTimeStep = BigInt(timeStep);
+                        for (let i = 0; i < 8; i++) {
+                            dataView.setUint8(7 - i, Number((bigTimeStep >> BigInt(i * 8)) & 0xFFn));
+                        }
+                        
+                        // 计算HMAC-SHA1
+                        return crypto.subtle.importKey('raw', key, {name: 'HMAC', hash: 'SHA-1'}, false, ['sign'])
+                            .then(key => {
+                                return crypto.subtle.sign(
+                                    {
+                                        name: 'HMAC',
+                                        hash: 'SHA-1'
+                                    },
+                                    key,
+                                    new Uint8Array(buffer)
+                                );
+                            })
+                            .then(signature => {
+                                const hmacBytes = new Uint8Array(signature);
+                                
+                                // 提取动态截断值
+                                const offset = hmacBytes[hmacBytes.length - 1] & 0xf;
+                                const binary = (
+                                    ((hmacBytes[offset] & 0x7f) << 24) |
+                                    ((hmacBytes[offset + 1] & 0xff) << 16) |
+                                    ((hmacBytes[offset + 2] & 0xff) << 8) |
+                                    (hmacBytes[offset + 3] & 0xff)
+                                );
+                                
+                                // 生成TOTP码
+                                const otp = binary % Math.pow(10, 6);
+                                return otp.toString().padStart(6, '0');
+                            });
+                    } catch (error) {
+                        console.error('Error generating TOTP for preview:', error);
+                        return '生成失败';
+                    }
+                };
+                
+                const otpCode = await generateTOTP(secret);
+                const otpCodeElement = document.querySelector('.otp-code');
+                if (otpCodeElement) {
+                    otpCodeElement.textContent = otpCode;
+                }
+            } catch (error) {
+                console.error('Error updating TOTP for preview:', error);
             }
         }
         
@@ -1341,8 +1423,8 @@ function parseOTPURI(uri) {
                 accountsListEl.innerHTML = '';
                 
                 for (const account of accounts) {
-                    // 生成当前账户的TOTP
-                    const otp = await generateTOTP(account.secret);
+                    // 使用后端返回的TOTP码和剩余时间
+                    const otp = account.totp;
                     const timeLeft = getRemainingTime();
                     
                     const accountEl = document.createElement('div');

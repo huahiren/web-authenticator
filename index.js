@@ -68,42 +68,10 @@ async function hmacSHA1(key, message) {
 }
 
 // 生成TOTP
-async function generateTOTP(secret, digits = 6, period = 30) {
-    // 将Base32密钥转换为二进制
-    const decodedSecret = base32Decode(secret);
-    
-    // 获取当前时间步长
-    const now = Math.floor(Date.now() / 1000);
-    const timeStep = Math.floor(now / period);
-    
-    // 将时间步长转换为8字节的缓冲区（大端序）
-    const buffer = new ArrayBuffer(8);
-    const view = new DataView(buffer);
-    // 正确处理8字节时间步长（大端序）
-    // 使用BigInt确保正确处理大数值
-    let bigTimeStep = BigInt(timeStep);
-    for (let i = 0; i < 8; i++) {
-        view.setUint8(7 - i, Number((bigTimeStep >> BigInt(i * 8)) & 0xFFn));
-    }
-    
-    // 计算HMAC-SHA1
-    const hmac = await hmacSHA1(decodedSecret, new Uint8Array(buffer));
-    
-    // 动态截断
-    const offset = hmac[hmac.length - 1] & 0x0F;
-    const code = ((hmac[offset] & 0x7F) << 24) |
-                 ((hmac[offset + 1] & 0xFF) << 16) |
-                 ((hmac[offset + 2] & 0xFF) << 8) |
-                 (hmac[offset + 3] & 0xFF);
-    
-    // 取模得到指定长度的验证码
-    const otp = code % Math.pow(10, digits);
-    
-    // 补前导零
-    return otp.toString().padStart(digits, '0');
-}
+// TOTP生成逻辑已移至后端，前端不再需要此函数
 
 // 获取剩余倒计时时间（秒）
+// 这个函数现在主要用于页面上的倒计时更新，后端会返回初始剩余时间
 function getRemainingTime(period = 30) {
     const now = Math.floor(Date.now() / 1000);
     return period - (now % period);
@@ -271,8 +239,8 @@ async function renderAccounts() {
                     <div class="totp-container">
                         <div class="totp-code" id="totp-${account._id}" title="点击复制密钥">生成中...</div>
                         <div class="countdown-container">
-                            <div class="countdown-bar" id="countdown-${account._id}"></div>
-                            <div class="countdown-text" id="countdown-text-${account._id}"></div>
+                            <div class="countdown-bar" id="countdown-${account.id || account._id}"></div>
+                            <div class="countdown-text" id="countdown-text-${account.id || account._id}"></div>
                         </div>
                     </div>
                     ${actionButtons}
@@ -325,16 +293,22 @@ async function updateAllTOTPs() {
 // 更新单个账户的TOTP码
 async function updateTOTP(account) {
     try {
-        // 生成当前TOTP码
-        const totp = await generateTOTP(account.secret);
+        // 使用后端返回的TOTP码，如果没有则重新获取
+        let totp = account.totp;
+        
+        // 如果账户没有totp字段，或者需要重新获取（如倒计时结束），则重新请求
+        if (!totp) {
+            const updatedAccount = await ApiService.getAccount(account.id);
+            totp = updatedAccount.totp;
+        }
         
         // 获取剩余时间
         const timeLeft = getRemainingTime();
         
         // 更新DOM
-        const totpElement = document.getElementById(`totp-${account._id}`);
-        const countdownElement = document.getElementById(`countdown-${account._id}`);
-        const countdownTextElement = document.getElementById(`countdown-text-${account._id}`);
+        const totpElement = document.getElementById(`totp-${account.id || account._id}`);
+        const countdownElement = document.getElementById(`countdown-${account.id || account._id}`);
+        const countdownTextElement = document.getElementById(`countdown-text-${account.id || account._id}`);
         
         if (totpElement) {
             totpElement.textContent = totp;
@@ -1150,13 +1124,9 @@ window.generateOTPURI = function generateOTPURI(account, secret, issuer = '') {
 }
 
 // 显示账户二维码函数
-window.showAccountQRCode = function showAccountQRCode(account) {
+// 显示账户二维码函数
+window.showAccountQRCode = async function showAccountQRCode(account) {
     console.log('showAccountQRCode函数被调用，账户信息:', account);
-    
-    // 生成OTP URI
-    console.log('生成OTP URI...');
-    const uri = window.generateOTPURI(account.name, account.secret, account.issuer);
-    console.log('生成的OTP URI:', uri);
     
     // 使用简单直接的方式创建一个新的弹窗，不依赖现有的模态框结构
     console.log('创建新的弹窗来显示二维码...');
@@ -1226,50 +1196,79 @@ window.showAccountQRCode = function showAccountQRCode(account) {
     };
     popupContent.appendChild(closeBtn);
     
-    // 创建二维码容器
-    const qrContainer = document.createElement('div');
-    qrContainer.style.cssText = `
-        margin: 0 auto;
-        width: 220px;
-        height: 220px;
-        background-color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+    // 创建加载状态
+    const loading = document.createElement('div');
+    loading.textContent = '正在获取账户密钥...';
+    loading.style.cssText = `
+        margin: 40px 0;
+        font-size: 16px;
+        color: #666;
     `;
-    
-    // 使用qrcodejs生成二维码
-    const qrElement = document.createElement('div');
-    qrElement.id = 'qrcode';
-    // 不需要额外的样式，QRCode库会自动设置尺寸
-    qrContainer.appendChild(qrElement);
-    
-    // 生成二维码
-    new QRCode(qrElement, {
-        text: uri,
-        width: 200,
-        height: 200,
-        colorDark: '#000000',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.H
-    });
-    
-    popupContent.appendChild(qrContainer);
-    
-    // 添加OTP URI显示区域
-    const uriDisplay = document.createElement('div');
-    uriDisplay.innerHTML = `
-        <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">OTP URI:</div>
-        <textarea style="width: 100%; height: 80px; font-family: monospace; font-size: 12px; resize: vertical; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">${uri}</textarea>
-        <div style="margin-top: 10px; font-size: 14px; color: #666;">请复制此URI到您的认证器应用中</div>
-    `;
-    popupContent.appendChild(uriDisplay);
+    popupContent.appendChild(loading);
     
     // 添加到弹窗容器
     popup.appendChild(popupContent);
     
     // 添加到页面
     document.body.appendChild(popup);
+    
+    try {
+        // 获取账户密钥
+        console.log('获取账户密钥...');
+        const accountWithSecret = await ApiService.getAccountSecret(account.id);
+        console.log('获取到的账户密钥:', accountWithSecret);
+        
+        // 移除加载状态
+        loading.remove();
+        
+        // 生成OTP URI
+        console.log('生成OTP URI...');
+        const uri = window.generateOTPURI(accountWithSecret.name, accountWithSecret.secret, accountWithSecret.issuer);
+        console.log('生成的OTP URI:', uri);
+        
+        // 创建二维码容器
+        const qrContainer = document.createElement('div');
+        qrContainer.style.cssText = `
+            margin: 0 auto;
+            width: 220px;
+            height: 220px;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+        
+        // 使用qrcodejs生成二维码
+        const qrElement = document.createElement('div');
+        qrElement.id = 'qrcode';
+        // 不需要额外的样式，QRCode库会自动设置尺寸
+        qrContainer.appendChild(qrElement);
+        
+        // 生成二维码
+        new QRCode(qrElement, {
+            text: uri,
+            width: 200,
+            height: 200,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        
+        popupContent.appendChild(qrContainer);
+        
+        // 添加OTP URI显示区域
+        const uriDisplay = document.createElement('div');
+        uriDisplay.innerHTML = `
+            <div style="margin-top: 15px; margin-bottom: 10px; font-weight: bold;">OTP URI:</div>
+            <textarea style="width: 100%; height: 80px; font-family: monospace; font-size: 12px; resize: vertical; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">${uri}</textarea>
+            <div style="margin-top: 10px; font-size: 14px; color: #666;">请复制此URI到您的认证器应用中</div>
+        `;
+        popupContent.appendChild(uriDisplay);
+    } catch (error) {
+        console.error('生成二维码时出错:', error);
+        loading.textContent = '获取账户密钥失败，请重试';
+        loading.style.color = 'red';
+    }
     
     // 添加点击外部关闭功能
     popup.addEventListener('click', function(e) {
