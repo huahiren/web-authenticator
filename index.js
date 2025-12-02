@@ -1293,6 +1293,13 @@ window.addEventListener('DOMContentLoaded', async () => {
         const currentUser = await ApiService.getCurrentUser();
         console.log('获取到的当前用户:', currentUser);
         
+        // 如果用户未登录，重定向到登录页面
+        if (!currentUser) {
+            console.log('用户未登录，重定向到登录页面');
+            window.location.href = 'login/login.html';
+            return;
+        }
+        
         // 更新当前用户显示
         const currentUserEl = document.getElementById('current-user');
         console.log('currentUserEl元素:', currentUserEl);

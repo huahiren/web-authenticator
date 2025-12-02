@@ -15,19 +15,21 @@ window.addEventListener('DOMContentLoaded', async () => {
             const username = usernameInput.value;
             const password = passwordInput.value;
             
-            try {
-                // 调用登录API
-                console.log('准备登录，用户名:', username);
-                const user = await ApiService.login(username, password);
+            // 调用登录API
+            console.log('准备登录，用户名:', username);
+            const result = await ApiService.login(username, password);
+            
+            if (result && result.error) {
+                // 登录失败，显示错误信息
+                console.error('登录失败:', result.error);
+                loginError.textContent = result.error || '登录失败，请检查用户名和密码';
+                loginError.style.color = 'red';
+            } else {
+                // 登录成功，跳转到首页
                 console.log('登录成功，准备跳转');
-                // 所有用户登录后都跳转到首页
                 const targetUrl = '../index.html';
                 console.log('跳转到:', window.location.origin + window.location.pathname.replace('login/login.html', targetUrl.replace('../', '')));
                 window.location.href = targetUrl;
-            } catch (error) {
-                console.error('登录失败:', error);
-                loginError.textContent = error.message || '登录失败，请检查用户名和密码';
-                loginError.style.color = 'red';
             }
         });
     }
@@ -48,18 +50,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // 检查是否已经登录
     async function checkLoginStatus() {
-        try {
-            // 尝试获取当前用户信息
-            const user = await ApiService.getCurrentUser();
-            if (user) {
-                // 如果已经登录，直接跳转到主页面，使用绝对URL确保跳转正确
-                const targetUrl = '../index.html';
-                const fullUrl = window.location.origin + window.location.pathname.replace('login/login.html', targetUrl.replace('../', ''));
-                window.location.href = fullUrl;
-            }
-        } catch (error) {
-            // 如果获取失败，说明未登录或token过期，继续显示登录页面
-            console.log('用户未登录或token过期，显示登录页面');
+        // 尝试获取当前用户信息
+        const user = await ApiService.getCurrentUser();
+        if (user) {
+            // 如果已经登录，直接跳转到主页面，使用绝对URL确保跳转正确
+            const targetUrl = '../index.html';
+            const fullUrl = window.location.origin + window.location.pathname.replace('login/login.html', targetUrl.replace('../', ''));
+            window.location.href = fullUrl;
+        } else {
+            // 用户未登录，继续显示登录页面
+            console.log('用户未登录，显示登录页面');
         }
     }
     

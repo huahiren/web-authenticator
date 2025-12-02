@@ -407,22 +407,24 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // 检查用户状态
     async function checkUserStatus() {
-        try {
-            // 使用ApiService.getCurrentUser()获取当前用户
-            const user = await ApiService.getCurrentUser();
+        // 使用ApiService.getCurrentUser()获取当前用户
+        const user = await ApiService.getCurrentUser();
+        if (user) {
             currentUser = user;
             showAppPage();
-        } catch (error) {
-            // 如果getCurrentUser失败，尝试使用verifyToken
-            try {
-                const user = await ApiService.verifyToken();
-                currentUser = user;
-                showAppPage();
-            } catch (verifyError) {
-            // 未登录或token过期，跳转到登录页面
-            window.location.href = 'login/login.html';
+            return;
         }
+        
+        // 如果getCurrentUser返回null，尝试使用verifyToken
+        const verifiedUser = await ApiService.verifyToken();
+        if (verifiedUser && !verifiedUser.error) {
+            currentUser = verifiedUser;
+            showAppPage();
+            return;
         }
+        
+        // 未登录或token过期，跳转到登录页面
+        window.location.href = 'login/login.html';
     }
     
     // 退出登录
