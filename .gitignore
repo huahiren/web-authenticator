@@ -6,6 +6,9 @@ node_modules/
 .env.local
 .env.*.local
 
+# 配置文件
+config.js
+
 # 日志文件
 logs
 *.log
