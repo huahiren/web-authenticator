@@ -2,8 +2,10 @@
 // 注意：config.js必须在api-service.js之前加载
 // 因为config.js会在全局作用域中定义config变量
 
-// 从全局config变量获取API_BASE_URL
-const API_BASE_URL = window.config ? window.config.API_BASE_URL : 'http://localhost:3000/api';
+// 动态获取API_BASE_URL的函数，确保每次都能获取最新配置
+function getApiBaseUrl() {
+  return window.config && window.config.API_BASE_URL ? window.config.API_BASE_URL : 'http://localhost:3000/api';
+}
 
 // 定义ApiService类并挂载到全局window对象
 class ApiService {
@@ -37,6 +39,7 @@ class ApiService {
 
   // 通用请求方法
   static async request(endpoint, method = 'GET', body = null) {
+    const API_BASE_URL = getApiBaseUrl();
     const url = endpoint.startsWith('http://') || endpoint.startsWith('https://') ? endpoint : `${API_BASE_URL}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json'
